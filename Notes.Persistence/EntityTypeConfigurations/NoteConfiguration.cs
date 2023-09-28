@@ -1,6 +1,7 @@
 ﻿using Notes.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
 namespace Notes.Persistence.EntityTypeConfigurations
 {
     //Fluent API
