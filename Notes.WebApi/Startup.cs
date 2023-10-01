@@ -3,6 +3,7 @@ using Notes.Application.Interfaces;
 using System.Reflection;
 using Notes.Persistence;
 using Notes.Application;
+using Notes.WebApi.Middleware;
 
 namespace Notes.WebApi
 {
@@ -109,7 +110,7 @@ namespace Notes.WebApi
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            app.UseCustomExceptionHandler();
             app.UseRouting();
             app.UseHttpsRedirection();
             app.UseCors("AllowAll");
