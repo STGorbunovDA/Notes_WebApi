@@ -4,13 +4,12 @@ using System.Reflection;
 using Notes.Persistence;
 using Notes.Application;
 using Notes.WebApi.Middleware;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Notes.WebApi
 {
     public class Startup
     { 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public IConfiguration Configuration { get; }
 
         public Startup(IConfiguration configuration) => Configuration = configuration;
@@ -101,9 +100,66 @@ namespace Notes.WebApi
                     policy.AllowAnyOrigin();
                 });
             });
+
+            /*
+                * Данный код настраивает аутентификацию через JSON Web Tokens (JWT) в приложении 
+                  ASP.NET Core.
+
+                * Вот что делает каждая строка:
+
+                    * services.AddAuthentication(...): Этот метод добавляет сервисы для аутентификации 
+                      в приложение. Аутентификация — это процесс идентификации пользователя. 
+                      Это тот механизм, который уточняет, кто именно пытается получить доступ 
+                      к приложению или определенным его частям.
+
+                    * config.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;: 
+                      Устанавливает схему аутентификации по умолчанию как Bearer (как и определено 
+                      в стандарте JWT). Схема аутентификации указывает, какой механизм аутентификации 
+                      нужно использовать, когда пользователь пытается получить доступ к защищенным ресурсам.
+
+                    * config.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;: 
+                      Устанавливает схему вызова по умолчанию как Bearer. Схема вызова определяет, 
+                      как приложение ответит, когда неаутентифицированный пользователь пытается 
+                      получить доступ к ресурсу, требующему аутентификацию.
+
+                    * .AddJwtBearer("Bearer", options => ...): Здесь конфигурируется использование 
+                      токенов Bearer для аутентификации. Затем идут опции, в которых настраивается 
+                      обработчик JWT.
+
+                    * options.Authority = "https://localhost:7288/";: Здесь задается URL, который 
+                      используется для получения открытого ключа, который можно использовать 
+                      для валидации подписи токена.
+
+                    * options.Audience = "NotesWebAPI";: Аудитория, для которой предназначены токены. 
+                      Это обычно идентификатор вашего приложения.
+
+                    * options.RequireHttpsMetadata = false;: Опция HTTPS Metadata указывает, должен 
+                      ли обработчик JWT требовать HTTPS для обращения к endpoint сервера для получения 
+                      информации о ключах. Если эта опция установлена в false, то метаданные могут 
+                      быть получены и через HTTP.
+
+                Все эти настройки важны для безопасности вашего веб-приложения: они обеспечивают 
+                его способность корректно и безопасно управлять аутентификацией пользователей.
+            */
+            services.AddAuthentication(config =>
+            {
+                config.DefaultAuthenticateScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+                config.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+               .AddJwtBearer("Bearer", options =>
+               {
+                   // options.Authority = "https://localhost:5264/";
+                   // options.Authority = "https://localhost:7288/"
+                   // options.Authority = "https://localhost:44384/";
+                   // options.Authority = "https://localhost:45756/";
+
+                   options.Authority = "https://localhost:44384/";
+                   options.Audience = "NotesWebAPI";
+                   options.RequireHttpsMetadata = false;
+               });
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -114,7 +170,8 @@ namespace Notes.WebApi
             app.UseRouting();
             app.UseHttpsRedirection();
             app.UseCors("AllowAll");
-
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGet("/", async context =>
