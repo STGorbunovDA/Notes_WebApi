@@ -1,41 +1,41 @@
-﻿using MediatR;
+﻿using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Notes.Application.Common.Behaviors;
 using System.Reflection;
 
 namespace Notes.Application
 {
     /*
-     * Этот код представляет собой статический класс DependencyInjection, который содержит метод 
-       расширения AddApplication для IServiceCollection. Метод расширения используется для регистрации 
-       MediatR и связанных с ним сервисов в приложении.
+        * В этом классе DependencyInjection мы видим статический метод расширения AddApplication. 
+          Этот метод помогает настроить и объединить несколько элементов конфигурации 
+          в единую логику и позволяет добавить все соответствующие службы (сервисы) 
+          в коллекцию IServiceCollection, которая служит контейнером зависимостей в ASP.NET Core. 
+          Это делается для облегчения использования этих служб в других частях приложения.
 
-     * Важные аспекты кода:
+        * Подробнее о каждой строке:
 
-        * public static IServiceCollection AddApplication(this IServiceCollection services) 
-            - это статический метод расширения AddApplication для IServiceCollection. 
-            Метод расширения полезен, когда вы хотите добавить новый метод для существующего 
-            типа без наследования или модификации исходного кода.
+            * services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies
+              (Assembly.GetExecutingAssembly())); - добавляет службы, связанные с библиотекой MediatR, 
+              в коллекцию служб. MediatR используется для реализации шаблона "Медиатор", 
+              выступая в качестве посредника между объектами в приложении. В данной строке 
+              все службы MediatR, связанные с текущей сборкой, регистрируются в системе.
 
-        * services.AddMediatR() - вызывается для регистрации сервисов MediatR в проекте. 
-          MediatR - это библиотека, которая предоставляет реализацию медиатора для обработки запросов, 
-          отправляемых через медиатор. Внедрение зависимостей и регистрация экземпляра MediatR 
-          позволяют применять шаблон "медиатор" в проекте.
+            * services.AddValidatorsFromAssemblies(new[] { Assembly.GetExecutingAssembly() }); - 
+              автоматически находит и регистрирует валидаторы из библиотеки FluentValidation, 
+              которые есть в текущем сборке.
 
-        * cfg => cfg.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly()) - 
-          лямбда-выражение (обычно передается Action<IServiceConfiguration>), обрабатывающее передачу 
-          аргумента конфигурации в метод AddMediatR. Метод RegisterServicesFromAssemblies 
-          вызывается для текущей исполняемой сборки с помощью Assembly.GetExecutingAssembly(). 
-          Этот метод подключает сервисы из ассоциированных сборок, что обеспечивает изоляцию 
-          различных слоев приложения.
+            * services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>)); - 
+              регистрирует ValidationBehavior<,> в качестве временного (transient) сервиса для 
+              каждого типа IPipelineBehavior<,>. Здесь используется шаблон "Поведение в пайплайне" 
+              (Pipeline Behavior), который является промежуточным посредником (middleware) 
+              в MediatR и позволяет выполнять логику перед и после обработки команды или запроса.
 
-        * return services; - метод возвращает экземпляр IServiceCollection 
-          после выполнения своей работы. Это предоставляет возможность для дальнейшей регистрации 
-          и настройки сервисов приложения.
+            * return services; - Метод заканчивается возвратом измененной коллекции служб, 
+              чтобы вы могли организовать "сцепление" (chaining) методов при настройке.
 
-        В итоге, статический класс DependencyInjection с методом расширения AddApplication 
-        предназначен для простой регистрации MediatR и его сервисов в контексте разрешения 
-        зависимостей .NET. Это способствует чистоте и структурированности кода, делая приложение 
-        более модульным и удобным для поддержки.
+        Таким образом, этот метод помогает организовать всю конфигурацию сервисов, 
+        связанных с MediatR и валидацией FluentValidation, в одном месте и облегчает ее использование.
     */
     public static class DependencyInjection
     {
@@ -43,6 +43,8 @@ namespace Notes.Application
             this IServiceCollection services)
         {
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly()));
+            services.AddValidatorsFromAssemblies(new[] { Assembly.GetExecutingAssembly() });
+            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             return services;
         }
     }
