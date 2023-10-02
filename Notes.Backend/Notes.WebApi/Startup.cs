@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Notes.WebApi
 {
+    //https://localhost:7174/swagger/v1/swagger.json
+    //
     public class Startup
     { 
         public IConfiguration Configuration { get; }
@@ -148,7 +150,7 @@ namespace Notes.WebApi
                     JwtBearerDefaults.AuthenticationScheme;
                 config.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-               .AddJwtBearer("Bearer", options =>
+                .AddJwtBearer("Bearer", options =>
                {
                    // options.Authority = "https://localhost:5264/";
                    // options.Authority = "https://localhost:7288/"
@@ -159,6 +161,43 @@ namespace Notes.WebApi
                    options.Audience = "NotesWebAPI";
                    options.RequireHttpsMetadata = false;
                });
+            /*
+                * В этом коде используется библиотека Swashbuckle для Swagger - инструмента, который 
+                  помогает конструировать интерфейсное API с помощью набора открытых 
+                  и стандартизованных инструментов.
+
+                * Вот что именно происходит:
+
+                    * services.AddSwaggerGen(config => {...});: Метод AddSwaggerGen() добавляет 
+                      сервис Swagger Generator в контейнер DI (Dependency Injection, внедрение 
+                      зависимости). Этот генератор создает определение Swagger (OpenAPI) для 
+                      вашего API. Данная конфигурация происходит в классе Startup в методе 
+                      ConfigureServices.
+
+                    * var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";: 
+                      Эта строка создает имя файла xml, которое соответствует имени исполняемой 
+                      сборки. Этот файл XML будет использоваться для хранения комментариев 
+                      из вашего кода.
+
+                    * var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);: Эта строка 
+                      объединяет базовую директорию вашего приложения с именем файла xml, чтобы 
+                      создать полный путь к файлу xml.
+
+                    * config.IncludeXmlComments(xmlPath);: Метод IncludeXmlComments() говорит 
+                      Swagger использовать файл xml для получения комментариев из кода и включить 
+                      их в JSON Swagger.
+
+                В общем, эта конфигурация необходима для того, чтобы информация, которую 
+                вы вводите в комментариях в своем коде, автоматически преобразовывалась 
+                в полезные описания и подсказки в пользовательском интерфейсе Swagger UI 
+                или любом другом консумере API, который поддерживает OpenAPI.
+            */
+            services.AddSwaggerGen(config =>
+            {
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                config.IncludeXmlComments(xmlPath);
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -167,6 +206,12 @@ namespace Notes.WebApi
             {
                 app.UseDeveloperExceptionPage();
             }
+            app.UseSwagger();
+            app.UseSwaggerUI(config =>
+            {
+                config.RoutePrefix = string.Empty;
+                config.SwaggerEndpoint("swagger/v1/swagger.json", "Notes API");
+            });
             app.UseCustomExceptionHandler();
             app.UseRouting();
             app.UseHttpsRedirection();
