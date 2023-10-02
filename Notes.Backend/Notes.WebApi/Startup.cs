@@ -5,6 +5,9 @@ using Notes.Persistence;
 using Notes.Application;
 using Notes.WebApi.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 
 namespace Notes.WebApi
 {
@@ -161,56 +164,95 @@ namespace Notes.WebApi
                    options.Audience = "NotesWebAPI";
                    options.RequireHttpsMetadata = false;
                });
+
             /*
-                * В этом коде используется библиотека Swashbuckle для Swagger - инструмента, который 
-                  помогает конструировать интерфейсное API с помощью набора открытых 
-                  и стандартизованных инструментов.
+                * Этот код является конфигурацией для ASP.NET Core с использованием библиотеки 
+                  Swagger, для управления версиями API и для генерации интерактивной документации.
 
-                * Вот что именно происходит:
+                * Давайте рассмотрим каждую строку:
 
-                    * services.AddSwaggerGen(config => {...});: Метод AddSwaggerGen() добавляет 
-                      сервис Swagger Generator в контейнер DI (Dependency Injection, внедрение 
-                      зависимости). Этот генератор создает определение Swagger (OpenAPI) для 
-                      вашего API. Данная конфигурация происходит в классе Startup в методе 
-                      ConfigureServices.
+                    * services.AddVersionedApiExplorer(options => options.GroupNameFormat = "'v'VVV");
+                      Это метод, который добавляет сервис ApiExplorer с поддержкой версионности. 
+                      Это позволяет классам контроллеров в приложении быть организованными 
+                      не только по именам контроллеров и их действий, но и по версиям API. 
+                      'v'VVV' определяет формат имени группы. 'VVV' означает версию в формате 
+                      Major.Minor.Patch.
 
-                    * var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";: 
-                      Эта строка создает имя файла xml, которое соответствует имени исполняемой 
-                      сборки. Этот файл XML будет использоваться для хранения комментариев 
-                      из вашего кода.
+                    * services.AddTransient<IConfigureOptions<SwaggerGenOptions>,ConfigureSwaggerOptions>();
+                      Метод AddTransient добавляет сервис в коллекцию служб с паттерном 
+                      жизненного цикла transient. Это означает, что каждый раз, когда сервис 
+                      требуется, создается новый экземпляр. Здесь сервис конфигурации для 
+                      SwaggerGen добавлен так, чтобы когда это потребуется, будет создан 
+                      экземпляр класса ConfigureSwaggerOptions.
 
-                    * var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);: Эта строка 
-                      объединяет базовую директорию вашего приложения с именем файла xml, чтобы 
-                      создать полный путь к файлу xml.
+                    * services.AddSwaggerGen(); Swagger- это инструмент, который генерирует 
+                      пользовательский интерфейс для ваших API. Этот метод службы добавляет 
+                      Swagger generator к сервисам DI (Dependency Injection) вашего приложения.
 
-                    * config.IncludeXmlComments(xmlPath);: Метод IncludeXmlComments() говорит 
-                      Swagger использовать файл xml для получения комментариев из кода и включить 
-                      их в JSON Swagger.
+                    * services.AddApiVersioning(); Этот метод добавляет поддержку версионности 
+                      API к вашему приложению. Это значит, что вы можете иметь несколько версий 
+                      каждого вашего API, и клиенты могут выбирать, какую версию они хотят использовать.
 
-                В общем, эта конфигурация необходима для того, чтобы информация, которую 
-                вы вводите в комментариях в своем коде, автоматически преобразовывалась 
-                в полезные описания и подсказки в пользовательском интерфейсе Swagger UI 
-                или любом другом консумере API, который поддерживает OpenAPI.
+                В общем, этот блок кода подготавливает приложение к управлению версиями API 
+                и генерации документации с помощью Swagger.
             */
-            services.AddSwaggerGen(config =>
-            {
-                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                config.IncludeXmlComments(xmlPath);
-            });
+            services.AddVersionedApiExplorer(options =>
+                options.GroupNameFormat = "'v'VVV");
+            services.AddTransient<IConfigureOptions<SwaggerGenOptions>,
+                    ConfigureSwaggerOptions>();
+            services.AddSwaggerGen();
+            services.AddApiVersioning();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env,
+           IApiVersionDescriptionProvider provider)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
             app.UseSwagger();
+            /*
+                * Этот код настраивает интерфейс пользователя Swagger для .NET Core приложения.
+
+                * Итак, давайте разберем, что здесь происходит:
+
+                    * app.UseSwaggerUI(config => {...});: Настройка и активация интерфейса 
+                      пользователя Swagger. Swagger UI - это сгенерированный веб-интерфейс, 
+                      который позволяет визуализировать и взаимодействовать с документацией 
+                      API в браузере.
+
+                    * foreach (var description in provider.ApiVersionDescriptions):
+                      Этот цикл проходит через все версии API, предоставляемые внедренным 
+                      провайдером версий (provider.ApiVersionDescriptions). ApiVersionDescription - 
+                      это класс, который предоставляет описание версии API.
+
+                    * $"/swagger/{description.GroupName}/swagger.json": описывает путь к файлу 
+                      JSON Swagger для определенной версии API. GroupName - это свойство, которое 
+                      указывает на идентификатор версии.
+
+                    * description.GroupName.ToUpperInvariant(): Это название, которое будет 
+                      отображаться в выборе версий в интерфейсе пользователя Swagger. Имя группы 
+                      (то есть версия API) преобразуется в верхний регистр.
+
+                    * config.RoutePrefix = string.Empty;: Это устанавливает префикс маршрута, 
+                      по которому будет доступен Swagger UI. В данном случае он установлен 
+                      в пустую строку, что означает, что Swagger UI будет доступен непосредственно 
+                      по корневому URL-адресу приложения (например, http://localhost:5000/).
+
+                После выполнения этого кода, вы сможете открыть ваш браузер и перейти к URL 
+                вашего приложения, чтобы увидеть красиво оформленную страницу с вашими API 
+                и их документацией.
+            */
             app.UseSwaggerUI(config =>
             {
-                config.RoutePrefix = string.Empty;
-                config.SwaggerEndpoint("swagger/v1/swagger.json", "Notes API");
+                foreach (var description in provider.ApiVersionDescriptions)
+                {
+                    config.SwaggerEndpoint(
+                        $"/swagger/{description.GroupName}/swagger.json",
+                        description.GroupName.ToUpperInvariant());
+                    config.RoutePrefix = string.Empty;
+                }
             });
             app.UseCustomExceptionHandler();
             app.UseRouting();
@@ -218,6 +260,7 @@ namespace Notes.WebApi
             app.UseCors("AllowAll");
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseApiVersioning();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGet("/", async context =>
