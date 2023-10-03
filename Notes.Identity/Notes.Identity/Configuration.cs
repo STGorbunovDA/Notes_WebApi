@@ -160,7 +160,7 @@ namespace Notes.Identity
                     */
                     RedirectUris =
                     {
-                        "http://.../signin-oidc"
+                        "http://localhost:3000/signin-oidc"
                     },
                     /*
                         * Список URI-источников, которые разрешены для запросов 
@@ -170,7 +170,7 @@ namespace Notes.Identity
                     */
                     AllowedCorsOrigins =
                     {
-                        "http://..."
+                        "http://localhost:3000"
                     },
                     /*
                         * Этот список URI, куда клиентские приложения могут быть перенаправлены 
@@ -180,7 +180,7 @@ namespace Notes.Identity
                     */
                     PostLogoutRedirectUris =
                     {
-                        "http:/.../signout-oidc"
+                        "http://localhost:3000/signout-oidc"
                     },
                     /*
                         * Это список идентификаторов областей действия (scopes), которые 
